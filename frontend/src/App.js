@@ -10,6 +10,7 @@ import Home from './pages/Home';
 import League from './pages/League';
 import Game from './pages/Game';
 import Leaderboard from './pages/Leaderboard';
+import Profile from './pages/Profile';
 import EarlyList from './pages/EarlyList';
 import Collab from './pages/Collab';
 import Admin from './pages/Admin';
@@ -33,6 +34,7 @@ const Layout = () => {
         <Route path="/league" element={gated(<League />)} />
         <Route path="/play" element={gated(<Game />)} />
         <Route path="/leaderboard" element={gated(<Leaderboard />)} />
+        <Route path="/profile" element={gated(<Profile />)} />
       </Routes>
       {!inGame && <Footer />}
       {!GAME_LOCKED && <UsernameDialog />}

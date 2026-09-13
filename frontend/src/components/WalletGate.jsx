@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Wallet, PenLine, UserRound, ArrowRight, Loader2, ExternalLink } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
@@ -134,9 +135,9 @@ export const ConnectPill = () => {
   if (user?.username) {
     return (
       <div className="flex items-center gap-3" data-testid="nav-user-pill">
-        <div className="font-mono hidden items-center gap-2 border border-[var(--ink)] px-3 py-1.5 text-[11px] tracking-widest sm:flex">
+        <Link to="/profile" className="font-mono hidden items-center gap-2 border border-[var(--ink)] px-3 py-1.5 text-[11px] tracking-widest transition-colors hover:bg-[var(--ink)] hover:text-[var(--paper)] sm:flex" data-testid="nav-user-pill-link">
           <Wallet size={12} /> @{user.username} &middot; {user.points} PTS
-        </div>
+        </Link>
         <button onClick={logout} className="nav-link text-[11px]" data-testid="nav-logout">Log out</button>
       </div>
     );

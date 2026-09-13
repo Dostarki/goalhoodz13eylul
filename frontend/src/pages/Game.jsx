@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, ChevronUp, Pause, Play, RotateCcw, Zap, Loader2 } from 'lucide-react';
-import { createMatch, step, W, H } from '../game/engine';
+import { createMatch, step, modsFromStats, W, H } from '../game/engine';
 import { render } from '../game/renderer';
 import { Sfx } from '../game/sound';
 import PixelSprite from '../components/PixelSprite';
 import WalletGate from '../components/WalletGate';
+import { NftBonusStrip, StatPills } from '../components/NftBonus';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { ARENAS, ROUNDS, MATCH_SECONDS, getCharacter, getSoundEnabled, arenaForRound } from '../mock';
@@ -21,7 +22,7 @@ const KEYMAP = {
 const Match = ({ setup, mode, user, setUser }) => {
   const navigate = useNavigate();
   const canvasRef = useRef(null);
-  const stateRef = useRef(createMatch({ duration: MATCH_SECONDS }));
+  const stateRef = useRef(createMatch({ duration: MATCH_SECONDS, mods: modsFromStats(user.nft_bonus?.stats) }));
   const inputRef = useRef({ left: false, right: false, jump: false, kick: false });
   const sfxRef = useRef(new Sfx());
   const recordedRef = useRef(false);
@@ -205,6 +206,8 @@ const Match = ({ setup, mode, user, setUser }) => {
         </div>
       </div>
 
+      <NftBonusStrip bonus={user.nft_bonus} />
+
       <div className="relative mt-4 border-[3px] border-[var(--ink)] shadow-[8px_8px_0_rgba(28,28,34,0.15)]">
         <canvas ref={canvasRef} width={W} height={H} className="game-canvas" data-testid="game-canvas" />
 
@@ -303,6 +306,12 @@ const Matchmaking = ({ setup, user, onDone }) => {
           <div className="flex flex-col items-center gap-3">
             <PixelSprite bitmap={setup.playerChar.bitmap} scale={6} ink="var(--ink)" />
             <div className="font-pixel text-[11px]">@{user.username}</div>
+            {user.nft_bonus && (
+              <div className="flex flex-col items-center gap-2" data-testid="matchmaking-nft-bonus">
+                <div className="font-mono text-[9px] tracking-[0.2em] text-[var(--ink-soft)]">{user.nft_bonus.name.toUpperCase()}</div>
+                <StatPills stats={user.nft_bonus.stats} className="justify-center" />
+              </div>
+            )}
           </div>
           <div className="font-pixel text-[18px] text-[var(--ink-soft)]">VS</div>
           <div className="flex flex-col items-center gap-3">

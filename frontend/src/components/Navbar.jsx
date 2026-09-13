@@ -12,6 +12,7 @@ const LINKS = [
   { to: '/', label: 'Home' },
   { to: '/leaderboard', label: 'STANDINGS', id: 'nav-standings', game: true },
   { to: '/league', label: 'League', game: true },
+  { to: '/profile', label: 'My NFT', id: 'nav-profile', game: true },
   { to: '/#characters', label: 'Characters' },
   { to: '/#roadmap', label: 'Roadmap' },
   { to: '/#how-to-play', label: 'How to Play' },

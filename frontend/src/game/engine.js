@@ -21,6 +21,18 @@ const BODY_OFF = 14;
 const KICK_FRAMES = 14;
 const MAX_SPEED = 22;
 
+// NFT trait bonuses (fractions, e.g. 0.08). Only the human player gets them.
+export const NO_MODS = { speed: 0, agility: 0, shooting: 0, attack: 0, dribbling: 0, passing: 0, defense: 0, physical: 0, stamina: 0 };
+export const modsFromStats = (stats = {}) => {
+  const m = { ...NO_MODS };
+  Object.entries(stats).forEach(([k, v]) => {
+    const key = k.toLowerCase();
+    if (key in m) m[key] = v / 100;
+  });
+  return m;
+};
+const staminaActive = (st) => st.time < st.duration / 3;
+
 const makePlayer = (x, facing) => ({
   x,
   y: GROUND,
@@ -40,10 +52,11 @@ const makePlayer = (x, facing) => ({
   hold: 40,
 });
 
-export function createMatch({ duration = 60 } = {}) {
+export function createMatch({ duration = 60, mods = NO_MODS } = {}) {
   return {
     time: duration,
     duration,
+    mods: { ...NO_MODS, ...mods },
     phase: 'countdown', // countdown | play | goal | end
     phaseT: 3.4,
     score: [0, 0],
@@ -86,11 +99,13 @@ export const footPos = (pl) => {
 };
 
 function controlPlayer(pl, input, st) {
+  const m = st.mods;
+  const speed = P_SPEED * (1 + m.speed + (staminaActive(st) ? m.stamina : 0));
   pl.vx = 0;
-  if (input.left) pl.vx = -P_SPEED;
-  if (input.right) pl.vx = P_SPEED;
+  if (input.left) pl.vx = -speed;
+  if (input.right) pl.vx = speed;
   if (input.jump && pl.onGround && !pl.jumpLatch) {
-    pl.vy = JUMP_V;
+    pl.vy = JUMP_V * (1 + m.agility * 0.8);
     pl.onGround = false;
     st.events.push('jump');
   }
@@ -123,15 +138,16 @@ function physicsPlayer(pl) {
   if (pl.cool > 0) pl.cool--;
 }
 
-function separatePlayers(a, b) {
+function separatePlayers(a, b, m) {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   const min = HEAD_R * 2 - 4;
   if (Math.abs(dx) < min && Math.abs(dy) < HEAD_OFF + HEAD_R) {
-    const push = (min - Math.abs(dx)) / 2;
+    const push = min - Math.abs(dx);
+    const wa = 0.5 * (1 - m.physical);
     const dir = dx >= 0 ? 1 : -1;
-    a.x -= push * dir;
-    b.x += push * dir;
+    a.x -= push * wa * dir;
+    b.x += push * (1 - wa) * dir;
     a.x = Math.max(HEAD_R, Math.min(W - HEAD_R, a.x));
     b.x = Math.max(HEAD_R, Math.min(W - HEAD_R, b.x));
   }
@@ -183,21 +199,21 @@ function collideBar(ball, x0, x1, y0, y1) {
   return true;
 }
 
-function playerBallInteraction(pl, ball, st) {
-  // kafa
-  if (collideCircle(ball, pl.x, pl.y - HEAD_OFF, HEAD_R, pl.vx, pl.vy, 0.92)) {
+function playerBallInteraction(pl, ball, st, m = NO_MODS) {
+  // kafa (defense: larger blocking radius, passing: livelier header)
+  if (collideCircle(ball, pl.x, pl.y - HEAD_OFF, HEAD_R * (1 + m.defense * 0.6), pl.vx, pl.vy, 0.92 * (1 + m.passing * 0.5))) {
     st.events.push('head');
   }
-  // govde
-  if (collideCircle(ball, pl.x, pl.y - BODY_OFF, BODY_R, pl.vx, pl.vy, 0.6)) {
+  // govde (physical: harder body bounce)
+  if (collideCircle(ball, pl.x, pl.y - BODY_OFF, BODY_R, pl.vx, pl.vy, 0.6 * (1 + m.physical))) {
     st.events.push('bounce');
   }
-  // vurus
+  // vurus (shooting/attack: power, dribbling: ball keeps more of your momentum)
   if (pl.kick > 0 && !pl.kickHit) {
     const f = footPos(pl);
     if (f.s > 0.35 && Math.hypot(ball.x - f.x, ball.y - f.y) < 18 + ball.r) {
-      const power = 12 + 5 * f.s;
-      ball.vx = pl.facing * power + pl.vx * 0.4;
+      const power = (12 + 5 * f.s) * (1 + m.shooting + m.attack * 0.5);
+      ball.vx = pl.facing * power + pl.vx * 0.4 * (1 + m.dribbling * 2);
       ball.vy = -5 - 7 * f.s - (pl.onGround ? 0 : 2);
       pl.kickHit = true;
       st.events.push('kick');
@@ -404,9 +420,9 @@ export function step(st, input) {
   aiControl(st);
   physicsPlayer(st.p);
   physicsPlayer(st.b);
-  separatePlayers(st.p, st.b);
+  separatePlayers(st.p, st.b, st.mods);
   physicsBall(st.ball, st);
-  playerBallInteraction(st.p, st.ball, st);
+  playerBallInteraction(st.p, st.ball, st, st.mods);
   playerBallInteraction(st.b, st.ball, st);
 
   const g = checkGoal(st);

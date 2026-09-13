@@ -47,6 +47,15 @@ with an admin panel.
   Frontend: `/play?mode=global` (hero + Standings CTA), Leaderboard shows "Recent League Matches". Old per-user 5-week bot season at /league kept.
 - Tested: testing agent iteration_1 (17/17 backend pass) + screenshots of NFT gate & standings.
 
+## 2026-06 — NFT trait → stat bonuses (/profile)
+- backend/nft_traits.py: full 4444-token trait table embedded (backend/data/goalhoodz_traits.csv from user's upload; columns Backgrounds/Base/Laces/Heel→Subs). BONUS table = user's list (Common/Rare, +% stat).
+  `owned_tokens(address)`: eth_getLogs Transfer(to=addr) on Robinhood RPC → batch `ownerOf` verify (120s cache). Blockscout API is Cloudflare-blocked; Etherscan doesn't support chain 4663; contract is NOT Enumerable.
+- users.active_token_id; `public_user` now returns `nft_token_id` + `nft_bonus {name, traits[], stats{}, total}`. Login auto-picks first owned token if none active / clears sold ones (best-effort).
+- Endpoints: GET /api/nft/mine, POST /api/nft/active {token_id} (must own), GET /api/nft/bonus/{id} (public).
+- Frontend: /profile page (record, active NFT traits, "Your GoalHoodz" picker, testids nft-card-{id}-select), navbar "My NFT" + user pill → /profile.
+  Game: NftBonusStrip under scoreboard + stat pills on matchmaking. engine.js `createMatch({mods})` — Speed→run, Agility→jump, Shooting/Attack→kick power, Dribbling→momentum, Passing→header, Defense→block radius, Physical→body bounce/duels, Stamina→speed in last 20s. Bot unaffected.
+- Tested: /nft/bonus/1 & /4444 via curl, authed flow with temp bypass wallet (reverted), owned_tokens parsing with mocked RPC, jest render + engine speed test (temp test removed). Real NFT flow untestable until mint (Sept 13).
+
 ## Backlog / Next
 - Set ADMIN_PASSWORD to enable admin panel; ETHERSCAN_API_KEY to enable VIP check.
 - Season structure (start/end, champion), $GOALZ rewards — see ROADMAP.md.

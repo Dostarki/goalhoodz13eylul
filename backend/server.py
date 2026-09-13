@@ -24,6 +24,7 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 from nft_gate import require_nft, nft_balance, gate_info  # noqa: E402
+from nft_traits import token_bonus, owned_tokens  # noqa: E402
 
 JWT_SECRET = os.environ.get('JWT_SECRET', 'dev-secret-change-me')
 CHAIN_ID = int(os.environ.get('CHAIN_ID', '4663'))
@@ -97,6 +98,8 @@ def public_user(u: dict) -> dict:
         'goals_for': u.get('goals_for', 0),
         'goals_against': u.get('goals_against', 0),
         'matches': u.get('matches', 0),
+        'nft_token_id': u.get('active_token_id'),
+        'nft_bonus': token_bonus(u['active_token_id']) if u.get('active_token_id') else None,
         'created_at': u.get('created_at').isoformat() if u.get('created_at') else None,
     }
 
@@ -232,7 +235,52 @@ async def get_or_create_user(address: str) -> dict:
             'matches': 0, 'created_at': now(),
         }
         await db.users.insert_one(user)
+    return await sync_active_token(user)
+
+
+async def sync_active_token(user: dict) -> dict:
+    """Best-effort: drop a sold NFT, auto-pick the first owned one when none is active."""
+    try:
+        owned = await owned_tokens(user['address'])
+    except HTTPException:
+        return user
+    active = user.get('active_token_id')
+    if active in owned:
+        return user
+    new_active = owned[0] if owned else None
+    if new_active != active:
+        await db.users.update_one({'address': user['address']}, {'$set': {'active_token_id': new_active}})
+        user['active_token_id'] = new_active
     return user
+
+
+class ActiveNftBody(BaseModel):
+    token_id: int = Field(ge=1)
+
+
+@api.get('/nft/mine')
+async def my_nfts(user=Depends(current_user)):
+    owned = await owned_tokens(user['address'])
+    user = await sync_active_token(user)
+    return {'tokens': [token_bonus(t) for t in owned if token_bonus(t)], 'active_token_id': user.get('active_token_id')}
+
+
+@api.post('/nft/active')
+async def set_active_nft(body: ActiveNftBody, user=Depends(current_user)):
+    if body.token_id not in await owned_tokens(user['address']):
+        raise HTTPException(403, 'This wallet does not own that GoalHoodz NFT.')
+    if not token_bonus(body.token_id):
+        raise HTTPException(404, 'Unknown token')
+    await db.users.update_one({'address': user['address']}, {'$set': {'active_token_id': body.token_id}})
+    return public_user(await db.users.find_one({'address': user['address']}))
+
+
+@api.get('/nft/bonus/{token_id}')
+async def nft_bonus(token_id: int):
+    b = token_bonus(token_id)
+    if not b:
+        raise HTTPException(404, 'Unknown token')
+    return b
 
 
 @api.post('/auth/connect')
@@ -396,7 +444,7 @@ async def save_match(body: MatchBody, user=Depends(current_user)):
         'id': str(uuid.uuid4()), 'address': user['address'], 'username': user.get('username'),
         'mode': body.mode, 'opponent_username': body.opponent_username, 'opponent_char_id': body.opponent_char_id,
         'player_goals': pg, 'opponent_goals': og, 'outcome': outcome, 'points': pts,
-        'arena': body.arena, 'character_id': body.character_id, 'played_at': now(),
+        'arena': body.arena, 'character_id': body.character_id, 'nft_token_id': user.get('active_token_id'), 'played_at': now(),
     }
     league = None
     global_match = None
