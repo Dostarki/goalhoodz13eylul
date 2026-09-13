@@ -24,6 +24,14 @@ with an admin panel.
 - Backend + frontend running under supervisor. Home page renders.
 - Verified end-to-end via curl: /api/auth/connect, /api/me/username, /api/league, /api/matches (league), /api/leaderboard.
 
+## 2026-06 — Game unlocked + LİG PUANLARI
+- flags.js GAME_LOCKED=false → League/Play/Leaderboard pages open, Early List hidden from hero & navbar (route /early-list still exists).
+- Hero: "CONNECT & PLAY" → /play?mode=league (WalletGate if not connected) + "LİG PUANLARI" button.
+- Navbar: Early List + Leaderboard links replaced by single "LİG PUANLARI" (/leaderboard, testid nav-lig-puanlari). League link kept.
+- /leaderboard rebuilt as Süper Lig-style table (O G B M A Y AV P), Turkish UI, "MAÇ OYNA" CTA, my-rank banner.
+- Backend GET /api/leaderboard: only users with matches>0, sorted points → goal_diff → goals_for → wins; returns goal_diff. Win=3 / Draw=1 already in POST /api/matches.
+- Verified via curl (3 test wallets, ranking order correct) + screenshots.
+
 ## Backlog / Next
 - Provide real REACT_APP_WALLETCONNECT_PROJECT_ID for WalletConnect/mobile wallets (MetaMask injected already works).
 - Set ADMIN_PASSWORD to enable admin panel; ETHERSCAN_API_KEY to enable VIP check.

@@ -83,11 +83,11 @@ const Home = () => {
               </>
             ) : (
               <>
-                <Link to="/league" className="btn-ink" data-testid="hero-league-btn">
-                  {ready ? 'ENTER THE LEAGUE' : 'CONNECT & PLAY'} <ArrowRight size={14} />
+                <Link to="/play?mode=league" className="btn-ink" data-testid="hero-league-btn">
+                  {ready ? 'PLAY LEAGUE MATCH' : 'CONNECT & PLAY'} <ArrowRight size={14} />
                 </Link>
-                <Link to="/play?mode=quick" className="btn-outline" data-testid="hero-quick-btn">
-                  QUICK MATCH
+                <Link to="/leaderboard" className="btn-outline" data-testid="hero-standings-btn">
+                  LİG PUANLARI
                 </Link>
               </>
             )}

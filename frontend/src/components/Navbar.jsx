@@ -10,10 +10,9 @@ import { GAME_LOCKED, SOON_MSG } from '../lib/flags';
 
 const LINKS = [
   { to: '/', label: 'Home' },
-  { to: '/early-list', label: 'Early List' },
+  { to: '/leaderboard', label: 'LİG PUANLARI', id: 'nav-lig-puanlari', game: true },
   { to: '/collabs', label: 'Collabs' },
   { to: '/league', label: 'League', game: true },
-  { to: '/leaderboard', label: 'Leaderboard', game: true },
   { to: '/#characters', label: 'Characters' },
   { to: '/#roadmap', label: 'Roadmap' },
   { to: '/#how-to-play', label: 'How to Play' },
@@ -22,7 +21,7 @@ const LINKS = [
 const soon = () => toast(SOON_MSG, { icon: <Lock size={12} /> });
 
 const NavItem = ({ link, active, className = '', onNav }) => {
-  const id = `nav-${link.label.toLowerCase().replace(/\s/g, '-')}`;
+  const id = link.id || `nav-${link.label.toLowerCase().replace(/\s/g, '-')}`;
   if (link.game && GAME_LOCKED) {
     return (
       <button onClick={soon} className={`nav-link flex items-center gap-1.5 opacity-50 ${className}`} data-testid={id} title="Coming soon">

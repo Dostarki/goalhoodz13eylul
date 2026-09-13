@@ -368,12 +368,13 @@ async def my_matches(user=Depends(current_user)):
 @api.get('/leaderboard')
 async def leaderboard(limit: int = 50):
     limit = max(1, min(limit, 200))
-    rows = await db.users.find({'username': {'$ne': None}}, {'_id': 0}).sort(
-        [('points', -1), ('wins', -1), ('goals_for', -1)]).to_list(limit)
+    rows = await db.users.find({'username': {'$ne': None}, 'matches': {'$gt': 0}}, {'_id': 0}).to_list(1000)
+    rows.sort(key=lambda u: (-u.get('points', 0), -(u.get('goals_for', 0) - u.get('goals_against', 0)), -u.get('goals_for', 0), -u.get('wins', 0)))
     out = []
-    for i, u in enumerate(rows):
+    for i, u in enumerate(rows[:limit]):
         d = public_user(u)
         d['rank'] = i + 1
+        d['goal_diff'] = d['goals_for'] - d['goals_against']
         d['address'] = d['address'][:6] + '...' + d['address'][-4:]
         out.append(d)
     return out
