@@ -245,7 +245,7 @@ export function render(ctx, st, opts) {
     const who = st.lastScorer === 0 ? playerName : botName;
     ctx.fillStyle = ink;
     ctx.font = '52px "Press Start 2P", monospace';
-    ctx.fillText('GOL!', W / 2, 190);
+    ctx.fillText('GOAL!', W / 2, 190);
     ctx.font = '14px "Share Tech Mono", monospace';
     ctx.fillText(`${who} skoru buldu`, W / 2, 236);
   }

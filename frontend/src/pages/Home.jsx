@@ -87,7 +87,7 @@ const Home = () => {
                   {ready ? 'PLAY LEAGUE MATCH' : 'CONNECT & PLAY'} <ArrowRight size={14} />
                 </Link>
                 <Link to="/leaderboard" className="btn-outline" data-testid="hero-standings-btn">
-                  LİG PUANLARI
+                  STANDINGS
                 </Link>
               </>
             )}

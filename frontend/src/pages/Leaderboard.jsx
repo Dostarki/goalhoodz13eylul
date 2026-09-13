@@ -8,14 +8,14 @@ import { getCharacter } from '../mock';
 import { useAuth } from '../context/AuthContext';
 
 const COLS = [
-  ['O', 'matches', 'Oynanan'],
-  ['G', 'wins', 'Galibiyet'],
-  ['B', 'draws', 'Beraberlik'],
-  ['M', 'losses', 'Mağlubiyet'],
-  ['A', 'goals_for', 'Atılan', true],
-  ['Y', 'goals_against', 'Yenilen', true],
-  ['AV', 'goal_diff', 'Averaj'],
-  ['P', 'points', 'Puan'],
+  ['P', 'matches', 'Played'],
+  ['W', 'wins', 'Won'],
+  ['D', 'draws', 'Drawn'],
+  ['L', 'losses', 'Lost'],
+  ['GF', 'goals_for', 'Goals For', true],
+  ['GA', 'goals_against', 'Goals Against', true],
+  ['GD', 'goal_diff', 'Goal Difference'],
+  ['Pts', 'points', 'Points'],
 ];
 
 const Leaderboard = () => {
@@ -27,7 +27,7 @@ const Leaderboard = () => {
     api
       .get('/leaderboard', { params: { limit: 100 } })
       .then((r) => setRows(r.data))
-      .catch(() => setErr('Puan tablosu yüklenemedi'));
+      .catch(() => setErr('Failed to load standings'));
   }, [user?.points]);
 
   const me = rows?.find((r) => user && r.username === user.username);
@@ -35,37 +35,37 @@ const Leaderboard = () => {
   return (
     <main className="paper-grid min-h-screen">
       <div className="mx-auto max-w-[1100px] px-5 py-14 md:px-10">
-        <div className="label mb-4">Sezon 01 &middot; Genel Sıralama</div>
+        <div className="label mb-4">Season 01 &middot; Standings</div>
         <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <h1 className="font-pixel text-[22px] leading-[1.5] md:text-[30px]" data-testid="leaderboard-title">LİG PUANLARI</h1>
+          <h1 className="font-pixel text-[22px] leading-[1.5] md:text-[30px]" data-testid="leaderboard-title">STANDINGS</h1>
           <Link to="/play?mode=league" className="btn-ink !px-5 !py-3 !text-[10px]" data-testid="leaderboard-play-btn">
-            MAÇ OYNA <ArrowRight size={12} />
+            PLAY MATCH <ArrowRight size={12} />
           </Link>
         </div>
         <p className="mt-4 max-w-2xl text-[15px] leading-7 text-[var(--ink-soft)]">
-          Oynanan her maç lige işlenir. Galibiyet = 3 puan, beraberlik = 1 puan. Sıralama puan, averaj ve atılan gole göre yapılır.
+          Every match played is recorded to the league. Win = 3 points, draw = 1 point. Ranking is by points, then goal difference, then goals for.
         </p>
 
         {me && (
           <div className="font-mono mt-8 border border-[var(--ink)] bg-[var(--paper-2)] px-5 py-4 text-[12px] tracking-wider" data-testid="my-rank-banner">
-            SENİN SIRAN: #{me.rank} &middot; @{me.username} &middot; {me.points} PUAN &middot; {me.matches} MAÇ
+            YOUR RANK: #{me.rank} &middot; @{me.username} &middot; {me.points} PTS &middot; {me.matches} PLAYED
           </div>
         )}
 
         <section className="mt-10 frame-card overflow-hidden">
           <div className="flex items-center justify-between border-b border-[var(--line)] px-5 py-4">
-            <div className="label">Puan Durumu</div>
-            <div className="font-mono text-[10px] tracking-widest text-[var(--ink-soft)]">G3 &middot; B1 &middot; M0</div>
+            <div className="label">League Table</div>
+            <div className="font-mono text-[10px] tracking-widest text-[var(--ink-soft)]">W3 &middot; D1 &middot; L0</div>
           </div>
           {!rows && !err && (
             <div className="flex items-center justify-center gap-3 p-10 text-[var(--ink-soft)]">
-              <Loader2 className="animate-spin" size={16} /> <span className="font-mono text-[12px] tracking-widest">YÜKLENİYOR</span>
+              <Loader2 className="animate-spin" size={16} /> <span className="font-mono text-[12px] tracking-widest">LOADING</span>
             </div>
           )}
           {err && <div className="font-mono p-10 text-center text-[12px] text-red-700">{err}</div>}
           {rows && rows.length === 0 && (
             <div className="font-mono p-10 text-center text-[12px] tracking-widest text-[var(--ink-soft)]" data-testid="leaderboard-empty">
-              HENÜZ MAÇ OYNANMADI. İLK SEN OL.
+              NO MATCHES PLAYED YET. BE THE FIRST.
             </div>
           )}
           {rows && rows.length > 0 && (
@@ -73,8 +73,8 @@ const Leaderboard = () => {
               <TableHeader>
                 <TableRow className="font-mono text-[10px] tracking-widest">
                   <TableHead className="w-12">#</TableHead>
-                  <TableHead>OYUNCU</TableHead>
-                  <TableHead className="hidden sm:table-cell">CÜZDAN</TableHead>
+                  <TableHead>PLAYER</TableHead>
+                  <TableHead className="hidden sm:table-cell">WALLET</TableHead>
                   {COLS.map(([h, , title, hide]) => (
                     <TableHead key={h} title={title} className={`text-center ${hide ? 'hidden sm:table-cell' : ''}`}>{h}</TableHead>
                   ))}

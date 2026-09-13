@@ -10,7 +10,7 @@ import { GAME_LOCKED, SOON_MSG } from '../lib/flags';
 
 const LINKS = [
   { to: '/', label: 'Home' },
-  { to: '/leaderboard', label: 'LİG PUANLARI', id: 'nav-lig-puanlari', game: true },
+  { to: '/leaderboard', label: 'STANDINGS', id: 'nav-standings', game: true },
   { to: '/collabs', label: 'Collabs' },
   { to: '/league', label: 'League', game: true },
   { to: '/#characters', label: 'Characters' },
