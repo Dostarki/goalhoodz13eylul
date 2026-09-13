@@ -11,7 +11,7 @@ TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523
 CACHE_TTL = 120
 _owned_cache: dict = {}
 
-CATEGORIES = [('background', 'Background'), ('base', 'Base'), ('laces', 'Laces'), ('subs', 'Subs')]
+CATEGORIES = [('background', 'Background'), ('base', 'Base'), ('laces', 'Laces'), ('subs', 'Heel')]
 
 # category -> trait value (lowercase) -> (stat, pct, rarity)
 BONUS = {

@@ -48,7 +48,7 @@ with an admin panel.
 - Tested: testing agent iteration_1 (17/17 backend pass) + screenshots of NFT gate & standings.
 
 ## 2026-06 — NFT trait → stat bonuses (/profile)
-- backend/nft_traits.py: full 4444-token trait table embedded (backend/data/goalhoodz_traits.csv from user's upload; columns Backgrounds/Base/Laces/Heel→Subs). BONUS table = user's list (Common/Rare, +% stat).
+- backend/nft_traits.py: full 4444-token trait table embedded (backend/data/goalhoodz_traits.csv from user's upload; columns Backgrounds/Base/Laces/Heel). BONUS table = user's list (Common/Rare, +% stat).
   `owned_tokens(address)`: eth_getLogs Transfer(to=addr) on Robinhood RPC → batch `ownerOf` verify (120s cache). Blockscout API is Cloudflare-blocked; Etherscan doesn't support chain 4663; contract is NOT Enumerable.
 - users.active_token_id; `public_user` now returns `nft_token_id` + `nft_bonus {name, traits[], stats{}, total}`. Login auto-picks first owned token if none active / clears sold ones (best-effort).
 - Endpoints: GET /api/nft/mine, POST /api/nft/active {token_id} (must own), GET /api/nft/bonus/{id} (public).
