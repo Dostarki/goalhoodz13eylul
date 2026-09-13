@@ -1,0 +1,308 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=Inter:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --paper: #efede4;
+  --paper-2: #f6f4ee;
+  --ink: #1c1c22;
+  --ink-soft: #45443f;
+  --line: #d9d5c8;
+  --accent: #7fa88b;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.font-pixel {
+  font-family: 'Press Start 2P', monospace;
+}
+
+.font-mono {
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.paper-grid {
+  background-image:
+    linear-gradient(rgba(28, 28, 34, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(28, 28, 34, 0.045) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.paper-noise::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.label {
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.btn-ink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 16px 26px;
+  border: 2px solid var(--ink);
+  transition: background-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease;
+  box-shadow: 4px 4px 0 rgba(28, 28, 34, 0.18);
+  cursor: pointer;
+}
+.btn-ink:hover {
+  background: #2b2b33;
+  transform: translate(-1px, -1px);
+  box-shadow: 6px 6px 0 rgba(28, 28, 34, 0.18);
+}
+.btn-ink:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 rgba(28, 28, 34, 0.18);
+}
+.btn-ink:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--paper-2);
+  color: var(--ink);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 16px 26px;
+  border: 2px solid var(--ink);
+  transition: background-color 0.18s ease, color 0.18s ease, transform 0.12s ease;
+  cursor: pointer;
+}
+.btn-outline:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.frame-card {
+  position: relative;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 0 rgba(28, 28, 34, 0.04), 0 18px 40px -24px rgba(28, 28, 34, 0.35);
+}
+
+.pixel-frame {
+  border: 3px solid var(--ink);
+  background: var(--paper);
+}
+
+.nav-link {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  transition: color 0.15s ease;
+  position: relative;
+}
+.nav-link:hover,
+.nav-link.active {
+  color: var(--ink);
+}
+.nav-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 100%;
+  bottom: -6px;
+  height: 2px;
+  background: var(--ink);
+  transition: right 0.2s ease;
+}
+.nav-link:hover::after,
+.nav-link.active::after {
+  right: 0;
+}
+
+.kbd {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  padding: 3px 8px;
+  border: 1.5px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  background: var(--paper-2);
+  display: inline-block;
+  min-width: 26px;
+  text-align: center;
+}
+
+.char-card {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  border: 2px solid var(--line);
+  background: var(--paper-2);
+}
+.char-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--ink);
+  box-shadow: 6px 6px 0 rgba(28, 28, 34, 0.12);
+}
+.char-card.selected {
+  border-color: var(--ink);
+  box-shadow: 6px 6px 0 var(--ink);
+}
+
+.touch-btn {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  width: 64px;
+  height: 64px;
+  border: 2px solid var(--ink);
+  background: var(--paper-2);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  box-shadow: 4px 4px 0 var(--ink);
+  transition: background-color 0.08s ease, transform 0.08s ease, box-shadow 0.08s ease;
+}
+.touch-btn:active,
+.touch-btn.pressed {
+  background: var(--ink);
+  color: var(--paper);
+  transform: translate(3px, 3px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+.game-canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  width: 100%;
+  height: auto;
+  display: block;
+  aspect-ratio: 16 / 9;
+  background: var(--paper);
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  animation: fadeUp 0.7s ease forwards;
+}
+.reveal-1 { animation-delay: 0.05s; }
+.reveal-2 { animation-delay: 0.18s; }
+.reveal-3 { animation-delay: 0.32s; }
+.reveal-4 { animation-delay: 0.46s; }
+
+@keyframes fadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bob {
+  animation: bob 1.6s steps(2, end) infinite;
+}
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.ball-bounce {
+  animation: ballBounce 0.8s steps(4, end) infinite alternate;
+}
+@keyframes ballBounce {
+  from { transform: translateY(0) rotate(0deg); }
+  to { transform: translateY(-40px) rotate(90deg); }
+}
+
+.blink {
+  animation: blink 1s steps(1, end) infinite;
+}
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+.marquee {
+  display: inline-block;
+  white-space: nowrap;
+  animation: marquee 28s linear infinite;
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.stat-cell + .stat-cell {
+  border-left: 1px solid var(--line);
+}
+
+.invert-card {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+@layer base {
+  :root {
+    --background: 48 24% 92%;
+    --foreground: 240 10% 12%;
+    --card: 45 31% 95%;
+    --card-foreground: 240 10% 12%;
+    --popover: 45 31% 95%;
+    --popover-foreground: 240 10% 12%;
+    --primary: 240 10% 12%;
+    --primary-foreground: 48 24% 92%;
+    --secondary: 45 20% 88%;
+    --secondary-foreground: 240 10% 12%;
+    --muted: 45 20% 88%;
+    --muted-foreground: 50 3% 42%;
+    --accent: 45 20% 88%;
+    --accent-foreground: 240 10% 12%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 43 18% 82%;
+    --input: 43 18% 82%;
+    --ring: 240 10% 12%;
+    --radius: 0rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+}
