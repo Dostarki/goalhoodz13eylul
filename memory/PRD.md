@@ -58,6 +58,8 @@ with an admin panel.
 
 - Public NFT showcase page `/nft/:id` (pages/NftShowcase.jsx): artwork from `frontend/public/nft/{id}.jpg` if present (only #36 uploaded as a sample), traits, bonuses, total. Profile cards link to it. Replace with tokenURI images after mint.
 
+- 2026-09 FIX: /nft/mine 503 for a 75-NFT wallet — public RPC 429'd the batched ownerOf calls. owned_tokens now = Transfer logs in − out (latest event per token wins) + 429 backoff; 2 RPC calls regardless of holdings. Verified by testing agent (iteration_2.json, 10/10). Mint is live; holder wallet 0xbd19…9cAE in test_credentials.md.
+
 ## Backlog / Next
 - Set ADMIN_PASSWORD to enable admin panel; ETHERSCAN_API_KEY to enable VIP check.
 - Season structure (start/end, champion), $GOALZ rewards — see ROADMAP.md.

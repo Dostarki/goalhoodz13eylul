@@ -1,0 +1,20 @@
+{
+  "summary": "Tested NFT bug fix (503 -> eth_getLogs). All 10 backend tests pass. /api/nft/mine returns 200 (no 503) with 78 tokens (>=75; wallet has grown since bug report), cache works. Trait mapping and 'Heel' label verified, token 36 stats match, ownership 403 and validation 422 both correct, /api/me reflects active NFT change, leaderboard and admin login regression OK.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/test_nft_bugfix.py", "/app/test_reports/pytest/nft_bugfix.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Note: real holder wallet (0xbd19...9cAE) now holds 78 tokens on-chain, not 75 as documented in test_credentials.md and problem statement. Test was relaxed to assert >=75 and coverage of ids 1..75. Consider updating memory/test_credentials.md.",
+    "nft_traits.py CATEGORIES maps CSV column 'subs' -> label 'Heel' (renaming only in API layer). Works, but the CSV column name still says 'subs' which is confusing for future devs.",
+    "current_user() calls require_nft() on every authed request; combined with owned_tokens() (2 RPC calls) this can amplify RPC pressure. Cache is only inside owned_tokens; require_nft (balanceOf) may have its own path."
+  ],
+  "updated_files": ["/app/backend/tests/test_nft_bugfix.py"],
+  "success_rate": {"backend": "100%", "frontend": "N/A"},
+  "test_credentials": "0xbd1901f366Ee37d6EfA1B9F9148B8542B29a9cAE (real holder), admin KRALAMKBABA",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "test_nft_bugfix.py covers connect, /nft/mine (with cache timing), /nft/active (owned/not-owned/422), /nft/bonus public, /me, leaderboard, admin/login. On-chain holdings can drift; keep assertion permissive (>=75 and includes ids 1..75).",
+  "rca of the issue": "Prior implementation issued 75 eth_call ownerOf requests to public Robinhood RPC, tripping 429 rate-limit -> 503 to client. Fix in nft_traits.owned_tokens uses two eth_getLogs (Transfer to=addr, Transfer from=addr), reconciles the latest event per token, and applies exponential backoff on 429 (0.6 * 2^attempt, 4 attempts). 120s per-address cache prevents repeated hammering. Verified: /api/nft/mine returns 200 with full holdings; second call hits cache."
+}

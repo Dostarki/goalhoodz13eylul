@@ -1,3 +1,4 @@
+import asyncio
 import csv
 import os
 import time
@@ -64,36 +65,46 @@ def token_bonus(token_id: int) -> dict | None:
 
 
 async def _rpc(client: httpx.AsyncClient, payload):
-    r = await client.post(RPC_URL, json=payload)
-    r.raise_for_status()
-    return r.json()
+    for attempt in range(4):
+        r = await client.post(RPC_URL, json=payload)
+        data = r.json() if r.status_code in (200, 429) else None
+        rate_limited = r.status_code == 429 or (isinstance(data, dict) and data.get('error', {}).get('code') == 429)
+        if not rate_limited:
+            r.raise_for_status()
+            return data
+        await asyncio.sleep(0.6 * (2 ** attempt))
+    raise ValueError('rpc rate limited')
+
+
+async def _transfer_logs(client, topics):
+    res = await _rpc(client, {'jsonrpc': '2.0', 'id': 1, 'method': 'eth_getLogs', 'params': [
+        {'fromBlock': '0x0', 'toBlock': 'latest', 'address': NFT_CONTRACT, 'topics': topics}]})
+    if 'error' in res:
+        raise ValueError(res['error'])
+    return [l for l in res.get('result', []) if len(l.get('topics', [])) > 3]
 
 
 async def owned_tokens(address: str) -> list[int]:
+    """Current holdings derived purely from Transfer logs (in minus out), 2 RPC calls, no per-token ownerOf."""
     address = address.lower()
     hit = _owned_cache.get(address)
     if hit and hit[0] > time.time():
         return hit[1]
     topic_addr = '0x' + address[2:].rjust(64, '0')
     try:
-        async with httpx.AsyncClient(timeout=15) as c:
-            logs = await _rpc(c, {'jsonrpc': '2.0', 'id': 1, 'method': 'eth_getLogs', 'params': [
-                {'fromBlock': '0x0', 'toBlock': 'latest', 'address': NFT_CONTRACT, 'topics': [TRANSFER_TOPIC, None, topic_addr]}]})
-            if 'error' in logs:
-                raise ValueError(logs['error'])
-            candidates = sorted({int(l['topics'][3], 16) for l in logs.get('result', []) if len(l.get('topics', [])) > 3})[:200]
-            owned = []
-            if candidates:
-                batch = [{'jsonrpc': '2.0', 'id': tid, 'method': 'eth_call', 'params': [
-                    {'to': NFT_CONTRACT, 'data': '0x6352211e' + hex(tid)[2:].rjust(64, '0')}, 'latest']} for tid in candidates]
-                res = await _rpc(c, batch)
-                for item in res if isinstance(res, list) else []:
-                    result = item.get('result')
-                    if result and len(result) >= 66 and '0x' + result[-40:] == address:
-                        owned.append(int(item['id']))
+        async with httpx.AsyncClient(timeout=20) as c:
+            incoming = await _transfer_logs(c, [TRANSFER_TOPIC, None, topic_addr])
+            outgoing = await _transfer_logs(c, [TRANSFER_TOPIC, topic_addr])
     except Exception:
         raise HTTPException(503, 'NFT lookup is temporarily unavailable. Try again shortly.')
-    owned.sort()
+    latest: dict[int, tuple] = {}
+    for direction, logs in ((0, outgoing), (1, incoming)):
+        for l in logs:
+            tid = int(l['topics'][3], 16)
+            key = (int(l['blockNumber'], 16), int(l['logIndex'], 16), direction)
+            if tid not in latest or key > latest[tid]:
+                latest[tid] = key
+    owned = sorted(tid for tid, k in latest.items() if k[2] == 1)
     _owned_cache[address] = (time.time() + CACHE_TTL, owned)
     return owned
 
