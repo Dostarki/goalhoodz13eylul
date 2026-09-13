@@ -49,6 +49,7 @@ const Match = ({ setup, mode, user, setUser }) => {
           mode,
           opponent_username: setup.opp.username,
           opponent_char_id: setup.opp.char_id,
+          opponent_address: setup.opp.address || null,
           player_goals: ps,
           opponent_goals: bs,
           arena: setup.arena.id,
@@ -174,11 +175,11 @@ const Match = ({ setup, mode, user, setUser }) => {
   return (
     <div className="mx-auto max-w-[1100px] px-4 py-6 md:px-10 md:py-10">
       <div className="mb-4 flex items-center justify-between">
-        <Link to={mode === 'league' ? '/league' : '/'} className="nav-link flex items-center gap-2" data-testid="game-back-link">
-          <ArrowLeft size={14} /> {mode === 'league' ? 'League' : 'Home'}
+        <Link to={mode === 'league' ? '/league' : mode === 'global' ? '/leaderboard' : '/'} className="nav-link flex items-center gap-2" data-testid="game-back-link">
+          <ArrowLeft size={14} /> {mode === 'league' ? 'League' : mode === 'global' ? 'Standings' : 'Home'}
         </Link>
-        <div className="label">
-          {mode === 'league' ? `Week ${setup.leagueRound + 1}` : 'Quick Match'} &middot; {setup.arena.name}
+        <div className="label" data-testid="game-mode-label">
+          {mode === 'league' ? `Week ${setup.leagueRound + 1}` : mode === 'global' ? (setup.opp.is_bot ? 'League · Bot Rival' : 'League · Wallet vs Wallet') : 'Quick Match'} &middot; {setup.arena.name}
         </div>
       </div>
 
@@ -224,10 +225,10 @@ const Match = ({ setup, mode, user, setUser }) => {
                   </button>
                 ) : (
                   <button onClick={restart} className="btn-ink" data-testid="result-restart-btn" disabled={saving}>
-                    <RotateCcw size={14} /> PLAY AGAIN
+                    <RotateCcw size={14} /> {mode === 'global' ? 'NEXT RIVAL' : 'PLAY AGAIN'}
                   </button>
                 )}
-                <Link to="/leaderboard" className="btn-outline">LEADERBOARD</Link>
+                <Link to="/leaderboard" className="btn-outline" data-testid="result-standings-btn">STANDINGS</Link>
               </div>
             </div>
           </div>
@@ -332,7 +333,8 @@ const Matchmaking = ({ setup, user, onDone }) => {
 const Game = () => {
   const [params] = useSearchParams();
   const { ready, user, setUser, loading } = useAuth();
-  const mode = params.get('mode') === 'league' ? 'league' : 'quick';
+  const modeParam = params.get('mode');
+  const mode = modeParam === 'league' || modeParam === 'global' ? modeParam : 'quick';
   const [setup, setSetup] = useState(null);
   const [matched, setMatched] = useState(false);
   const [err, setErr] = useState('');
@@ -355,6 +357,10 @@ const Game = () => {
           leagueRound = league.round;
           opp = league.opponents[ROUNDS[league.round][0][1] - 1];
           arenaId = arenaForRound(league.round);
+        } else if (mode === 'global') {
+          const { data } = await api.get('/global/opponent');
+          opp = data;
+          arenaId = Math.random() < 0.5 ? 'paper' : 'inverted';
         } else {
           const { data } = await api.get('/opponent');
           opp = data;

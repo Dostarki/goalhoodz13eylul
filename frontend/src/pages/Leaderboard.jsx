@@ -18,6 +18,46 @@ const COLS = [
   ['Pts', 'points', 'Points'],
 ];
 
+const RecentResults = ({ user }) => {
+  const [rows, setRows] = useState(null);
+  useEffect(() => {
+    api.get('/global/matches', { params: { limit: 12 } }).then((r) => setRows(r.data)).catch(() => setRows([]));
+  }, [user?.points]);
+  return (
+    <section className="mt-10 frame-card overflow-hidden" data-testid="recent-results">
+      <div className="flex items-center justify-between border-b border-[var(--line)] px-5 py-4">
+        <div className="label">Recent League Matches</div>
+        <div className="font-mono text-[10px] tracking-widest text-[var(--ink-soft)]">WALLET VS WALLET</div>
+      </div>
+      {!rows && <div className="font-mono p-8 text-center text-[12px] tracking-widest text-[var(--ink-soft)]">LOADING</div>}
+      {rows && rows.length === 0 && (
+        <div className="font-mono p-8 text-center text-[12px] tracking-widest text-[var(--ink-soft)]" data-testid="recent-results-empty">NO LEAGUE MATCHES YET.</div>
+      )}
+      {rows && rows.length > 0 && (
+        <div className="divide-y divide-[var(--line)]">
+          {rows.map((m) => {
+            const mine = user && (m.home.address === user.address || m.away.address === user.address);
+            return (
+              <div key={m.id} className={`font-mono grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-5 py-3 text-[12px] tracking-wider ${mine ? 'bg-[var(--paper-2)]' : ''}`} data-testid={`recent-match-${m.id}`}>
+                <div className="flex items-center justify-end gap-2 truncate text-right">
+                  <span className="truncate">@{m.home.username}</span>
+                  <PixelSprite bitmap={getCharacter(m.home.char_id).bitmap} scale={2} ink="var(--ink)" />
+                </div>
+                <div className="font-pixel bg-[var(--ink)] px-3 py-1 text-[10px] text-[var(--paper)]">{m.home_goals} - {m.away_goals}</div>
+                <div className="flex items-center gap-2 truncate">
+                  <PixelSprite bitmap={getCharacter(m.away.char_id).bitmap} scale={2} ink="var(--ink)" flip />
+                  <span className="truncate">@{m.away.username}</span>
+                  {m.away.is_bot && <span className="text-[9px] text-[var(--ink-soft)]">BOT</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+};
+
 const Leaderboard = () => {
   const { user } = useAuth();
   const [rows, setRows] = useState(null);
@@ -35,15 +75,15 @@ const Leaderboard = () => {
   return (
     <main className="paper-grid min-h-screen">
       <div className="mx-auto max-w-[1100px] px-5 py-14 md:px-10">
-        <div className="label mb-4">Season 01 &middot; Standings</div>
+        <div className="label mb-4">Season 01 &middot; Standings &middot; Every wallet is a team</div>
         <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <h1 className="font-pixel text-[22px] leading-[1.5] md:text-[30px]" data-testid="leaderboard-title">STANDINGS</h1>
-          <Link to="/play?mode=league" className="btn-ink !px-5 !py-3 !text-[10px]" data-testid="leaderboard-play-btn">
-            PLAY MATCH <ArrowRight size={12} />
+          <Link to="/play?mode=global" className="btn-ink !px-5 !py-3 !text-[10px]" data-testid="leaderboard-play-btn">
+            PLAY LEAGUE MATCH <ArrowRight size={12} />
           </Link>
         </div>
         <p className="mt-4 max-w-2xl text-[15px] leading-7 text-[var(--ink-soft)]">
-          Every match played is recorded to the league. Win = 3 points, draw = 1 point. Ranking is by points, then goal difference, then goals for.
+          Every connected wallet is one team. League matches pit you against another wallet's striker and both teams' records are written to the table. Win = 3 points, draw = 1 point. Ranking is by points, then goal difference, then goals for.
         </p>
 
         {me && (
@@ -107,6 +147,8 @@ const Leaderboard = () => {
             </Table>
           )}
         </section>
+
+        <RecentResults user={user} />
       </div>
     </main>
   );

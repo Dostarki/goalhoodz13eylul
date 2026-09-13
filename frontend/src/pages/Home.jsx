@@ -83,7 +83,7 @@ const Home = () => {
               </>
             ) : (
               <>
-                <Link to="/play?mode=league" className="btn-ink" data-testid="hero-league-btn">
+                <Link to="/play?mode=global" className="btn-ink" data-testid="hero-league-btn">
                   {ready ? 'PLAY LEAGUE MATCH' : 'CONNECT & PLAY'} <ArrowRight size={14} />
                 </Link>
                 <Link to="/leaderboard" className="btn-outline" data-testid="hero-standings-btn">
@@ -158,7 +158,7 @@ const Home = () => {
       ) : (
         !ready && (
           <section className="mx-auto max-w-[1400px] px-5 py-20 md:px-10" id="connect">
-            <WalletGate title="Connect your wallet to unlock the pitch." subtitle="Futbot League runs on Robinhood Chain with ETH as native currency. Connect, sign in and pick your username to start playing." />
+            <WalletGate title="Connect your wallet to unlock the pitch." subtitle="GoalHoodz runs on Robinhood Chain and the pitch is holders-only: your wallet must hold a GoalHoodz NFT. Connect, pass the check and pick your username to start playing." />
           </section>
         )
       )}

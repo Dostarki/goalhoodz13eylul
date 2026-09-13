@@ -23,6 +23,8 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
+from nft_gate import require_nft, nft_balance, gate_info  # noqa: E402
+
 JWT_SECRET = os.environ.get('JWT_SECRET', 'dev-secret-change-me')
 CHAIN_ID = int(os.environ.get('CHAIN_ID', '4663'))
 APP_NAME = 'GoalHoodz - Early'
@@ -163,9 +165,10 @@ class CharacterBody(BaseModel):
 
 
 class MatchBody(BaseModel):
-    mode: str = Field(pattern='^(league|quick)$')
+    mode: str = Field(pattern='^(league|quick|global)$')
     opponent_username: str
     opponent_char_id: str = 'mohawk'
+    opponent_address: Optional[str] = None
     player_goals: int = Field(ge=0, le=50)
     opponent_goals: int = Field(ge=0, le=50)
     arena: str = 'paper'
@@ -188,6 +191,7 @@ async def current_user(authorization: Optional[str] = Header(None)) -> dict:
     user = await db.users.find_one({'address': payload['sub']})
     if not user:
         raise HTTPException(401, 'User not found')
+    await require_nft(user['address'])
     return user
 
 
@@ -237,8 +241,17 @@ async def connect(body: ConnectBody):
     if not re.match(r'^0x[a-fA-F0-9]{40}$', body.address):
         raise HTTPException(400, 'Invalid address')
     address = body.address.lower()
+    await require_nft(address)
     user = await get_or_create_user(address)
     return {'token': make_token(address), 'user': public_user(user)}
+
+
+@api.get('/nft/status')
+async def nft_status(address: str):
+    if not re.match(r'^0x[a-fA-F0-9]{40}$', address):
+        raise HTTPException(400, 'Invalid address')
+    bal = await nft_balance(address)
+    return {'address': address.lower(), 'balance': bal, 'has_nft': bal > 0, **gate_info()}
 
 
 @api.post('/auth/verify')
@@ -254,6 +267,7 @@ async def verify(body: VerifyBody):
     if recovered.lower() != address:
         raise HTTPException(401, 'Signer mismatch')
     await db.nonces.delete_one({'_id': pending['_id']})
+    await require_nft(address)
     user = await get_or_create_user(address)
     return {'token': make_token(address), 'user': public_user(user)}
 
@@ -319,6 +333,60 @@ async def reset_league(user=Depends(current_user)):
     return league_view(await get_or_create_league(user['address']))
 
 
+def stat_inc(gf: int, ga: int) -> dict:
+    outcome = 'win' if gf > ga else 'loss' if gf < ga else 'draw'
+    pts = 3 if outcome == 'win' else 1 if outcome == 'draw' else 0
+    return {'points': pts, 'matches': 1, 'goals_for': gf, 'goals_against': ga,
+            'wins': 1 if outcome == 'win' else 0, 'draws': 1 if outcome == 'draw' else 0,
+            'losses': 1 if outcome == 'loss' else 0}
+
+
+def team_view(u: dict) -> dict:
+    return {'address': u['address'], 'username': u.get('username'), 'char_id': u.get('character_id', 'arc'), 'is_bot': False}
+
+
+def global_match_view(m: dict) -> dict:
+    return {
+        'id': m['id'], 'home': m['home'], 'away': m['away'], 'home_goals': m['home_goals'], 'away_goals': m['away_goals'],
+        'arena': m.get('arena', 'paper'), 'played_at': m['played_at'].isoformat() if isinstance(m.get('played_at'), datetime) else m.get('played_at'),
+    }
+
+
+@api.get('/global/opponent')
+async def global_opponent(user=Depends(current_user)):
+    """Every wallet is a team: pick another real wallet as the rival (least recently faced first)."""
+    teams = await db.users.find({'username': {'$ne': None}, 'address': {'$ne': user['address']}}, {'_id': 0}).to_list(2000)
+    if not teams:
+        return {'address': None, 'username': random_username(), 'char_id': random.choice(CHAR_IDS), 'is_bot': True}
+    recent = await db.league_matches.find({'home.address': user['address']}, {'_id': 0, 'away.address': 1}).sort('played_at', -1).to_list(50)
+    faced = [m['away']['address'] for m in recent]
+    fresh = [t for t in teams if t['address'] not in faced]
+    if fresh:
+        return team_view(random.choice(fresh))
+    faced_rank = {a: i for i, a in enumerate(faced)}
+    teams.sort(key=lambda t: -faced_rank.get(t['address'], 999))
+    return team_view(random.choice(teams[: max(1, len(teams) // 2)]))
+
+
+@api.get('/global/matches')
+async def global_matches(limit: int = 20):
+    limit = max(1, min(limit, 100))
+    rows = await db.league_matches.find({}, {'_id': 0}).sort('played_at', -1).to_list(limit)
+    return [global_match_view(m) for m in rows]
+
+
+@api.get('/global/me')
+async def my_global_matches(user=Depends(current_user)):
+    rows = await db.league_matches.find(
+        {'$or': [{'home.address': user['address']}, {'away.address': user['address']}]}, {'_id': 0}
+    ).sort('played_at', -1).to_list(20)
+    form = []
+    for m in rows[:5]:
+        mine, theirs = (m['home_goals'], m['away_goals']) if m['home']['address'] == user['address'] else (m['away_goals'], m['home_goals'])
+        form.append('W' if mine > theirs else 'L' if mine < theirs else 'D')
+    return {'matches': [global_match_view(m) for m in rows], 'form': form}
+
+
 @api.post('/matches')
 async def save_match(body: MatchBody, user=Depends(current_user)):
     pg, og = body.player_goals, body.opponent_goals
@@ -331,6 +399,19 @@ async def save_match(body: MatchBody, user=Depends(current_user)):
         'arena': body.arena, 'character_id': body.character_id, 'played_at': now(),
     }
     league = None
+    global_match = None
+    if body.mode == 'global':
+        rival = None
+        if body.opponent_address and re.match(r'^0x[a-fA-F0-9]{40}$', body.opponent_address) and body.opponent_address.lower() != user['address']:
+            rival = await db.users.find_one({'address': body.opponent_address.lower()})
+        away = team_view(rival) if rival else {'address': None, 'username': body.opponent_username, 'char_id': body.opponent_char_id, 'is_bot': True}
+        gm = {'id': match['id'], 'home': team_view(user), 'away': away, 'home_goals': pg, 'away_goals': og,
+              'arena': body.arena, 'played_at': match['played_at']}
+        await db.league_matches.insert_one(gm)
+        if rival:
+            await db.users.update_one({'address': rival['address']}, {'$inc': stat_inc(og, pg)})
+            match['opponent_address'] = rival['address']
+        global_match = global_match_view(gm)
     if body.mode == 'league':
         l = await get_or_create_league(user['address'])
         if l['round'] < len(ROUNDS):
@@ -353,7 +434,7 @@ async def save_match(body: MatchBody, user=Depends(current_user)):
     user = await db.users.find_one({'address': user['address']})
     match.pop('_id', None)
     match['played_at'] = match['played_at'].isoformat()
-    return {'match': match, 'user': public_user(user), 'league': league}
+    return {'match': match, 'user': public_user(user), 'league': league, 'global_match': global_match}
 
 
 @api.get('/matches/me')
@@ -408,6 +489,9 @@ async def ensure_indexes():
     await db.users.create_index('username_lc')
     await db.matches.create_index([('address', 1), ('played_at', -1)])
     await db.leagues.create_index([('address', 1), ('active', 1)])
+    await db.league_matches.create_index([('played_at', -1)])
+    await db.league_matches.create_index([('home.address', 1), ('played_at', -1)])
+    await db.league_matches.create_index([('away.address', 1), ('played_at', -1)])
     await early_module.ensure_indexes()
     await collab_module.ensure_indexes()
 

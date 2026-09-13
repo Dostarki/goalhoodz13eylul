@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useAccount, useChainId, useDisconnect, useSwitchChain } from 'wagmi';
-import { api, TOKEN_KEY, errMsg } from '../lib/api';
+import { api, TOKEN_KEY, errMsg, nftGateOf } from '../lib/api';
 import { robinhood } from '../web3/config';
 
 const AuthContext = createContext(null);
@@ -15,11 +15,41 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(!!localStorage.getItem(TOKEN_KEY));
   const [signing, setSigning] = useState(false);
   const [error, setError] = useState('');
+  const [nftGate, setNftGate] = useState(null);
 
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     setUser(null);
   }, []);
+
+  // any API call rejected with NFT_REQUIRED -> drop session, show gate
+  useEffect(() => {
+    const onGate = (e) => {
+      setNftGate(e.detail);
+      logout();
+    };
+    window.addEventListener('futbot-nft-required', onGate);
+    return () => window.removeEventListener('futbot-nft-required', onGate);
+  }, [logout]);
+
+  // wallet switched -> reset gate state
+  useEffect(() => {
+    setNftGate(null);
+  }, [address, isConnected]);
+
+  const login = useCallback(async () => {
+    try {
+      const res = await api.post('/auth/connect', { address });
+      localStorage.setItem(TOKEN_KEY, res.data.token);
+      setNftGate(null);
+      setUser(res.data.user);
+      if (chainId !== robinhood.id) switchChainAsync({ chainId: robinhood.id }).catch(() => {});
+      return true;
+    } catch (e) {
+      if (!nftGateOf(e)) setError(errMsg(e, 'Login failed'));
+      return false;
+    }
+  }, [address, chainId, switchChainAsync]);
 
   // restore session
   useEffect(() => {
@@ -50,19 +80,8 @@ export const AuthProvider = ({ children }) => {
     (async () => {
       setSigning(true);
       setError('');
-      try {
-        const res = await api.post('/auth/connect', { address });
-        if (cancelled) return;
-        localStorage.setItem(TOKEN_KEY, res.data.token);
-        setUser(res.data.user);
-        if (chainId !== robinhood.id) {
-          switchChainAsync({ chainId: robinhood.id }).catch(() => {});
-        }
-      } catch (e) {
-        if (!cancelled) setError(errMsg(e, 'Login failed'));
-      } finally {
-        if (!cancelled) setSigning(false);
-      }
+      await login();
+      if (!cancelled) setSigning(false);
     })();
     return () => {
       cancelled = true;
@@ -75,17 +94,9 @@ export const AuthProvider = ({ children }) => {
     if (!isConnected || !address) return;
     setSigning(true);
     setError('');
-    try {
-      const res = await api.post('/auth/connect', { address });
-      localStorage.setItem(TOKEN_KEY, res.data.token);
-      setUser(res.data.user);
-      if (chainId !== robinhood.id) switchChainAsync({ chainId: robinhood.id }).catch(() => {});
-    } catch (e) {
-      setError(errMsg(e, 'Login failed'));
-    } finally {
-      setSigning(false);
-    }
-  }, [isConnected, address, chainId, switchChainAsync]);
+    await login();
+    setSigning(false);
+  }, [isConnected, address, login]);
 
   const setUsername = useCallback(async (username) => {
     const { data } = await api.put('/me/username', { username });
@@ -114,6 +125,7 @@ export const AuthProvider = ({ children }) => {
       loading,
       signing,
       error,
+      nftGate,
       isConnected,
       address,
       ready: !!user && !!user.username,
@@ -122,7 +134,7 @@ export const AuthProvider = ({ children }) => {
       setCharacter,
       logout: fullLogout,
     }),
-    [user, loading, signing, error, isConnected, address, signIn, setUsername, setCharacter, fullLogout]
+    [user, loading, signing, error, nftGate, isConnected, address, signIn, setUsername, setCharacter, fullLogout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -6,6 +6,7 @@ import { Input } from './ui/input';
 import { useAuth } from '../context/AuthContext';
 import { errMsg } from '../lib/api';
 import { isEmbedded } from '../web3/config';
+import NftGate, { OPENSEA_URL } from './NftGate';
 
 const EmbeddedNotice = () => {
   if (!isEmbedded()) return null;
@@ -68,30 +69,32 @@ export const UsernameForm = ({ onDone }) => {
   );
 };
 
-// Full gate panel: connect -> sign -> username
+// Full gate panel: connect -> NFT check -> username
 const WalletGate = ({ title = 'Connect to play', subtitle }) => {
-  const { user, isConnected, signIn, signing, error, loading } = useAuth();
+  const { user, isConnected, signIn, signing, error, loading, nftGate } = useAuth();
   const signed = !!user;
   const named = !!user?.username;
+  const blocked = !signed && !!nftGate;
 
   return (
     <div className="frame-card mx-auto w-full max-w-2xl p-6 md:p-10" data-testid="wallet-gate">
-      <div className="label mb-3">Wallet Checkpoint</div>
+      <div className="label mb-3">Wallet Checkpoint &middot; Holders Only</div>
       <h2 className="font-pixel text-[16px] leading-relaxed md:text-[20px]">{title}</h2>
       {subtitle && <p className="mt-3 text-[15px] leading-7 text-[var(--ink-soft)]">{subtitle}</p>}
       <EmbeddedNotice />
+      {blocked && <NftGate />}
 
       <div className="mt-8 space-y-8">
-        <Step n="1" title="Connect Wallet" text="Approve the connection in your wallet on Robinhood Chain (ETH). That single approval logs you in. No transaction, no gas." active={!signed} done={signed}>
+        <Step n="1" title="Connect Wallet" text="Approve the connection in your wallet on Robinhood Chain (ETH). We check that the wallet holds a GoalHoodz NFT — that single approval logs you in. No transaction, no gas." active={!signed} done={signed}>
           <div className="flex flex-wrap items-center gap-4" data-testid="gate-connect">
             <ConnectButton chainStatus="icon" showBalance={false} accountStatus="address" />
             {isConnected && !signed && (signing || loading) && (
               <span className="font-mono flex items-center gap-2 text-[11px] tracking-widest text-[var(--ink-soft)]" data-testid="gate-logging-in">
-                <Loader2 size={12} className="animate-spin" /> LOGGING IN
+                <Loader2 size={12} className="animate-spin" /> CHECKING NFT
               </span>
             )}
           </div>
-          {signed && <div className="font-mono mt-3 text-[12px] tracking-wider text-[var(--ink-soft)]">Logged in as {user.address.slice(0, 6)}...{user.address.slice(-4)}</div>}
+          {signed && <div className="font-mono mt-3 text-[12px] tracking-wider text-[var(--ink-soft)]">Logged in as {user.address.slice(0, 6)}...{user.address.slice(-4)} &middot; NFT VERIFIED</div>}
           {error && (
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <span className="font-mono text-[12px] text-red-700" data-testid="gate-error">{error}</span>
@@ -127,7 +130,7 @@ export const UsernameDialog = () => {
 };
 
 export const ConnectPill = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, nftGate, isConnected } = useAuth();
   if (user?.username) {
     return (
       <div className="flex items-center gap-3" data-testid="nav-user-pill">
@@ -135,6 +138,16 @@ export const ConnectPill = () => {
           <Wallet size={12} /> @{user.username} &middot; {user.points} PTS
         </div>
         <button onClick={logout} className="nav-link text-[11px]" data-testid="nav-logout">Log out</button>
+      </div>
+    );
+  }
+  if (isConnected && nftGate) {
+    return (
+      <div className="flex items-center gap-3" data-testid="nav-nft-required">
+        <a href={nftGate.opensea_url || OPENSEA_URL} target="_blank" rel="noreferrer" className="btn-ink !px-4 !py-2.5 !text-[10px]" data-testid="nav-get-nft-btn">
+          GET NFT <ExternalLink size={12} />
+        </a>
+        <button onClick={logout} className="nav-link text-[11px]" data-testid="nav-logout">Disconnect</button>
       </div>
     );
   }

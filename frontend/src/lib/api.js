@@ -11,4 +11,22 @@ api.interceptors.request.use((cfg) => {
   return cfg;
 });
 
-export const errMsg = (e, fallback = 'Something went wrong') => e?.response?.data?.detail || e?.shortMessage || e?.message || fallback;
+export const nftGateOf = (e) => {
+  const d = e?.response?.data?.detail;
+  return e?.response?.status === 403 && d && typeof d === 'object' && d.code === 'NFT_REQUIRED' ? d : null;
+};
+
+api.interceptors.response.use(
+  (r) => r,
+  (e) => {
+    const gate = nftGateOf(e);
+    if (gate) window.dispatchEvent(new CustomEvent('futbot-nft-required', { detail: gate }));
+    return Promise.reject(e);
+  }
+);
+
+export const errMsg = (e, fallback = 'Something went wrong') => {
+  const d = e?.response?.data?.detail;
+  if (d && typeof d === 'object') return d.message || fallback;
+  return d || e?.shortMessage || e?.message || fallback;
+};
