@@ -56,6 +56,8 @@ with an admin panel.
   Game: NftBonusStrip under scoreboard + stat pills on matchmaking. engine.js `createMatch({mods})` — Speed→run, Agility→jump, Shooting/Attack→kick power, Dribbling→momentum, Passing→header, Defense→block radius, Physical→body bounce/duels, Stamina→speed in last 20s. Bot unaffected.
 - Tested: /nft/bonus/1 & /4444 via curl, authed flow with temp bypass wallet (reverted), owned_tokens parsing with mocked RPC, jest render + engine speed test (temp test removed). Real NFT flow untestable until mint (Sept 13).
 
+- Public NFT showcase page `/nft/:id` (pages/NftShowcase.jsx): artwork from `frontend/public/nft/{id}.jpg` if present (only #36 uploaded as a sample), traits, bonuses, total. Profile cards link to it. Replace with tokenURI images after mint.
+
 ## Backlog / Next
 - Set ADMIN_PASSWORD to enable admin panel; ETHERSCAN_API_KEY to enable VIP check.
 - Season structure (start/end, champion), $GOALZ rewards — see ROADMAP.md.

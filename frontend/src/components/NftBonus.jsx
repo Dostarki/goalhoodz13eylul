@@ -60,7 +60,7 @@ export const NftBonusCard = ({ bonus, active, onSelect, busy }) => {
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="font-mono text-[10px] tracking-widest text-[var(--ink-soft)]">#{String(bonus.token_id).padStart(4, '0')}</div>
-          <div className="font-pixel mt-2 text-[12px]">{bonus.name}</div>
+          <div className="font-pixel mt-2 text-[12px]"><Link to={`/nft/${bonus.token_id}`} className="hover:underline" data-testid={`nft-card-${bonus.token_id}-link`}>{bonus.name}</Link></div>
         </div>
         {active ? (
           <span className="font-mono flex items-center gap-1 bg-[var(--ink)] px-2 py-1 text-[9px] tracking-widest text-[var(--paper)]" data-testid={`nft-card-${bonus.token_id}-active`}>ACTIVE</span>
